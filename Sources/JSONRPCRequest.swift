@@ -7,12 +7,11 @@
 //
 
 import Foundation
-import SFJSON
-import SwiftyJSON
+import JSON
 
 public struct JSONRPCRequest {
 	/// A String specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
-	public let jsonrpc = "2.0"
+	public let jsonrpc: String
 	
 	/// A String containing the name of the method to be invoked. Method names that begin with the word rpc followed by a period character (U+002E or ASCII 46) are reserved for rpc-internal methods and extensions and MUST NOT be used for anything else.
 	public var method: String
@@ -23,22 +22,35 @@ public struct JSONRPCRequest {
 	/// A Structured value that holds the parameter values to be used during the invocation of the method. This member MAY be omitted.
 	public var params: Any?
 	
-	public init(method: String, params: Any? = nil, id: String = "qwer") {
+	public init(method: String, params: Any? = nil, id: String = "qwer", jsonrpc: String = "2.0") {
 		self.method = method
 		self.params = params
 		self.id = id
+		self.jsonrpc = jsonrpc
 	}
 }
 
-extension JSONRPCRequest: SFModel {
+extension JSONRPCRequest: JSONDeserializable {
 	
-	public init(json: JSON) throws {
-		guard let jsonrpc = json["jsonrpc"].string, jsonrpc == "2.0", let method = json["method"].string, let id = json["id"].string else {
-			throw JSONRPCError.wrongFormat
+	public init(jsonRepresentation json: JSONDictionary) throws {
+		jsonrpc = try decode(json, key: "jsonrpc")
+		guard jsonrpc == "2.0" else {
+			throw JSONRPCError.wrongVersion
 		}
-		self.method = method
-		self.id = id
-		self.params = json["params"].object
+		method = try decode(json, key: "method")
+		id = try decode(json, key: "id")
+		params = try? decode(json, key: "params")
 	}
 	
+}
+
+extension JSONRPCRequest: JSONSerializable {
+	public var jsonRepresentation: JSONDictionary {
+		return [
+			"jsonrpc": jsonrpc,
+			"method": method,
+			"id": id,
+			"params": params ?? ""
+		]
+	}
 }
