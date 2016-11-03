@@ -10,8 +10,9 @@ import Foundation
 import JSON
 
 public struct JSONRPCRequest {
+	
 	/// A String specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
-	public let jsonrpc: String
+	public let jsonrpc: String = "2.0"
 	
 	/// A String containing the name of the method to be invoked. Method names that begin with the word rpc followed by a period character (U+002E or ASCII 46) are reserved for rpc-internal methods and extensions and MUST NOT be used for anything else.
 	public var method: String
@@ -22,14 +23,15 @@ public struct JSONRPCRequest {
 	/// A Structured value that holds the parameter values to be used during the invocation of the method. This member MAY be omitted.
 	public var params: Any?
 	
-	public init(method: String, params: Any? = nil, id: String = "qwer", jsonrpc: String = "2.0") {
+	public init(method: String, params: Any? = nil, id: String = "qwer") {
 		self.method = method
 		self.params = params
 		self.id = id
-		self.jsonrpc = jsonrpc
 	}
 }
 
+// MARK: Temporally
+/*
 extension JSONRPCRequest: JSONDeserializable {
 	
 	public init(jsonRepresentation json: JSONDictionary) throws {
@@ -43,14 +45,17 @@ extension JSONRPCRequest: JSONDeserializable {
 	}
 	
 }
+*/
 
 extension JSONRPCRequest: JSONSerializable {
+
 	public var jsonRepresentation: JSONDictionary {
 		return [
 			"jsonrpc": jsonrpc,
 			"method": method,
 			"id": id,
-			"params": params ?? ""
+			"params": params ?? NSNull()
 		]
 	}
 }
+
