@@ -21,13 +21,29 @@ public class JSONRPC {
 		var urlreq = URLRequest(url: url)
 		urlreq.httpMethod = "POST"
 		urlreq.httpBody = try JSONSerialization.data(withJSONObject: request.jsonRepresentation, options: .prettyPrinted)
+		print("Sending Request \(urlreq)\n\(String.init(data: urlreq.httpBody!, encoding: .utf8)!)")
 		URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
-			guard error == nil, let response = response as? HTTPURLResponse, response.statusCode == 200,
-				let data = data, let jsonObject = try? JSONSerialization.jsonObject(with: data, options: .allowFragments),
-				let json = jsonObject as? [String: Any] else {
-					return
+//			print(response!)
+//			print(String.init(data: data!, encoding: .utf8)!)
+			guard error == nil else {
+				completion(nil, error!)
+				return
 			}
-			completion(try? decode(json), nil)
+			guard let data = data,
+				let jsonObject = try? JSONSerialization.jsonObject(with: data, options: .allowFragments),
+				let json = jsonObject as? [String: Any] else {
+				completion(nil, JSONRPCError.responseBodyError)
+				return
+			}
+//			print("Got Response")
+//			print(String.init(data: data, encoding: .utf8)!)
+			do {
+				let rpcResp: JSONRPCResponse = try decode(json)
+				completion(rpcResp, nil)
+			} catch {
+				completion(nil, error)
+			}
+			
 		}).resume()
 	}
 	
@@ -50,6 +66,7 @@ public class JSONRPC {
 public enum JSONRPCError: Error {
 	case wrongFormat
 	case wrongVersion
+	case responseBodyError
 }
 
 public enum JSONRPCMethod {
