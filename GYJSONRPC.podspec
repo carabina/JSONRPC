@@ -16,5 +16,5 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/kojirou1994/JSONRPC.git", :tag => "#{s.version}" }
   s.source_files  = "Sources/*.swift"
 
-  s.dependence 'GYJSON', '~> 0.1.6'
+  s.dependency 'GYJSON', '~> 0.1.6'
 end
