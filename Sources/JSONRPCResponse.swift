@@ -10,21 +10,25 @@ import Foundation
 import JSON
 
 public struct JSONRPCResponse {
+	
 	public let id: String
 	public let result: Any?
 	public let error: JSONRPCResponseError?
+	
 }
 
 extension JSONRPCResponse: JSONDeserializable {
+	
 	public init(jsonRepresentation json: JSONDictionary) throws {
 		id = try decode(json, key: "id")
 		result = try? decode(json, key: "result")
 		error = try? decode(json, key: "error")
-		
 	}
+	
 }
 
 public struct JSONRPCResponseError: JSONDeserializable {
+	
 	public var code: Int
 	public var message: String
 	public var data: Any?
