@@ -22,6 +22,9 @@ public class JSONRPC {
 		var urlreq = URLRequest(url: url)
 		urlreq.httpMethod = "POST"
 		urlreq.httpBody = try JSONEncoder().encode(request)
+        #if DEBUG
+        print(String(data: urlreq.httpBody!, using: .utf8)!)
+        #endif
 		URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
 			guard error == nil else {
                 completion(nil, JSONRPCError.networkError(description: (error! as NSError).description))
