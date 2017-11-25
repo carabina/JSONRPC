@@ -9,31 +9,33 @@
 import Foundation
 
 public class JSONRPC {
+    
 	public var rpcMethod: JSONRPCMethod = .httpURLSession
-	public var url: URL
+	
+    public var url: URL
 	
 	public init(url: URL) {
 		self.url = url
 	}
 
-    public func send<Parameters, Result, ErrorData>(request: JSONRPCRequest<Parameters>, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: Error?) -> Void) throws {
+    public func send<Parameters, Result, ErrorData>(request: JSONRPCRequest<Parameters>, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: JSONRPCError?) -> Void) throws {
 		var urlreq = URLRequest(url: url)
 		urlreq.httpMethod = "POST"
 		urlreq.httpBody = try JSONEncoder().encode(request)
 		URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
 			guard error == nil else {
-				completion(nil, error!)
+                completion(nil, JSONRPCError.networkError(description: (error! as NSError).description))
 				return
 			}
 			guard let data = data else {
-				completion(nil, JSONRPCError.responseBodyError)
+				completion(nil, JSONRPCError.nullResponse)
 				return
 			}
 			do {
 				let rpcResp = try JSONDecoder().decode(JSONRPCResponse<Result, ErrorData>.self, from: data)
 				completion(rpcResp, nil)
 			} catch {
-				completion(nil, error)
+				completion(nil, JSONRPCError.networkError(description: (error as NSError).description))
 			}
 		}).resume()
 	}
@@ -69,11 +71,14 @@ public class JSONRPC {
 public enum JSONRPCError: Error {
 	case wrongFormat
 	case wrongVersion
-	case responseBodyError
+	case nullResponse
+    case networkError(description: String)
 }
 
 public enum JSONRPCMethod {
+    @available(*,unavailable)
 	case webSocket
 	case httpURLSession
+    @available(*,unavailable)
 	case httpCurl
 }
