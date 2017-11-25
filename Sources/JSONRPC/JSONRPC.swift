@@ -42,6 +42,23 @@ public class JSONRPC {
 			}
 		}).resume()
 	}
+    
+    public func send(rawRequest: [String: Any], completion: @escaping ([String: Any]?) -> Void) throws {
+        var urlreq = URLRequest(url: url)
+        urlreq.httpMethod = "POST"
+        urlreq.httpBody = try JSONSerialization.data(withJSONObject: rawRequest, options: .prettyPrinted)
+        #if DEBUG
+        print(String(data: urlreq.httpBody!, using: .utf8)!)
+        #endif
+        URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
+            if error == nil, let data = data,
+            let json = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any] {
+                completion(json)
+            } else {
+                completion(nil)
+            }
+        }).resume()
+    }
 	
     // MARK: - later
     /*

@@ -8,7 +8,7 @@
 
 import Foundation
 
-public enum JRPCID: Codable {
+public enum JRPCID: Codable, Equatable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -38,6 +38,9 @@ public enum JRPCID: Codable {
     case null
 }
 
+public struct EmptyData : Codable {}
+public let NullParams = EmptyData()
+
 public struct JSONRPCRequest<Parameters: Encodable>: Encodable {
 	
 	/// A String specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
@@ -50,14 +53,36 @@ public struct JSONRPCRequest<Parameters: Encodable>: Encodable {
 	public var id: JRPCID
 	
 	/// A Structured value that holds the parameter values to be used during the invocation of the method. This member MAY be omitted.
-	public var params: Parameters?
+	public var params: Parameters
 	
-    public init(method: String, params: Parameters? = nil, id: JRPCID = .string("jsonrpc")) {
+    enum CodingKeys: String, CodingKey {
+        case jsonrpc, method, id, params
+    }
+    
+    public init(method: String, params: Parameters, id: JRPCID = .string("jsonrpc")) {
         self.method = method
         self.params = params
         self.id = id
     }
 
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(jsonrpc, forKey: .jsonrpc)
+        try container.encode(method, forKey: .method)
+        switch id {
+        case .null:
+            // It's a notification.
+            break
+        default:
+            try container.encode(id, forKey: .id)
+        }
+        if params is EmptyData {
+            
+        } else {
+            try container.encode(params, forKey: .params)
+        }
+    }
+    
 }
 
 

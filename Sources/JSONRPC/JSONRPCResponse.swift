@@ -11,9 +11,12 @@ import Foundation
 public struct JSONRPCResponse<Result: Decodable, ErrorData: Decodable>: Decodable {
 	
     public let jsonrpc: String
+    
 	public let id: JRPCID
-	public let result: Result?
-	public let error: JSONRPCResponseError<ErrorData>?
+	
+    public let result: Result?
+	
+    public let error: JSONRPCResponseError<ErrorData>?
 	
     public struct JSONRPCResponseError<ErrorData: Decodable>: Decodable {
         
