@@ -10,6 +10,19 @@ import Foundation
 
 public enum JRPCID: Codable, Equatable {
     
+    public static func ==(lhs: JRPCID, rhs: JRPCID) -> Bool {
+        switch (lhs, rhs) {
+        case let (.number(l), .number(r)):
+            return l == r
+        case let (.string(l), .string(r)):
+            return l == r
+        case (.null, .null):
+            return true
+        default:
+            return false
+        }
+    }
+    
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let stringValue = try? container.decode(String.self) {

@@ -17,13 +17,14 @@ public struct JSONRPCResponse<Result: Decodable, ErrorData: Decodable>: Decodabl
     public let result: Result?
 	
     public let error: JSONRPCResponseError<ErrorData>?
-	
-    public struct JSONRPCResponseError<ErrorData: Decodable>: Decodable {
-        
-        public var code: Int
-        public var message: String
-        public var data: ErrorData?
-        
-    }
-    
+
 }
+
+public struct JSONRPCResponseError<ErrorData: Decodable>: Decodable {
+
+    public var code: Int
+    public var message: String
+    public var data: ErrorData?
+
+}
+
