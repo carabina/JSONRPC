@@ -31,12 +31,12 @@ public class JSONRPC {
 				return
 			}
 			guard let data = data else {
-                #if DEBUG
-                print(String(data: data, using: .utf8)!)
-                #endif
 				completion(nil, JSONRPCError.nullResponse)
 				return
 			}
+            #if DEBUG
+            print(String(data: data, using: .utf8)!)
+            #endif
 			do {
 				let rpcResp = try JSONDecoder().decode(JSONRPCResponse<Result, ErrorData>.self, from: data)
 				completion(rpcResp, nil)
