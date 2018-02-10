@@ -18,10 +18,10 @@ public class JSONRPC {
 		self.url = url
 	}
 
-    public func send<Parameters, Result, ErrorData>(request: JSONRPCRequest<Parameters>, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: JSONRPCError?) -> Void) throws {
+    public func send<Result: Decodable, ErrorData: Decodable>(request: JSONRPCRequest, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: JSONRPCError?) -> Void) throws {
 		var urlreq = URLRequest(url: url)
 		urlreq.httpMethod = "POST"
-		urlreq.httpBody = try JSONEncoder().encode(request)
+		urlreq.httpBody = try request.httpBody()
         #if DEBUG
         print(String(data: urlreq.httpBody!, using: .utf8)!)
         #endif

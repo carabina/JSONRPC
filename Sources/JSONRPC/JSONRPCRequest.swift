@@ -54,7 +54,15 @@ public enum JRPCID: Codable, Equatable {
 public struct EmptyData : Codable {}
 public let NullParams = EmptyData()
 
-public struct JSONRPCRequest<Parameters: Encodable>: Encodable {
+public protocol JSONRPCRequest {
+    func httpBody() throws -> Data
+}
+
+public struct JSONRPCEncodableRequest<Parameters: Encodable>: JSONRPCRequest, Encodable {
+
+    public func httpBody() throws -> Data {
+        return try JSONEncoder().encode(self)
+    }
 	
 	/// A String specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
 	public let jsonrpc: String = "2.0"
@@ -96,6 +104,47 @@ public struct JSONRPCRequest<Parameters: Encodable>: Encodable {
         }
     }
     
+}
+
+public struct JSONRPCLegacyRequest: JSONRPCRequest {
+
+    public func httpBody() throws -> Data {
+        var json: [String: Any] = [
+            "jsonrpc": jsonrpc,
+            "method": method
+        ]
+        if params != nil {
+            json["params"] = params!
+        }
+        switch id {
+        case .null:
+            break
+        case .number(let number):
+            json["id"] = number
+        case .string(let str):
+            json["id"] = str
+        }
+        return try JSONSerialization.data(withJSONObject: json, options: [])
+    }
+
+    /// A String specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
+    public let jsonrpc: String = "2.0"
+
+    /// A String containing the name of the method to be invoked. Method names that begin with the word rpc followed by a period character (U+002E or ASCII 46) are reserved for rpc-internal methods and extensions and MUST NOT be used for anything else.
+    public var method: String
+
+    /// An identifier established by the Client that MUST contain a String, Number, or NULL value if included. If it is not included it is assumed to be a notification. The value SHOULD normally not be Null and Numbers SHOULD NOT contain fractional parts.
+    public var id: JRPCID
+
+    /// A Structured value that holds the parameter values to be used during the invocation of the method. This member MAY be omitted.
+    public var params: Any?
+
+    public init(method: String, params: Any? = nil, id: JRPCID = .string("jsonrpc")) {
+        self.method = method
+        self.params = params
+        self.id = id
+    }
+
 }
 
 

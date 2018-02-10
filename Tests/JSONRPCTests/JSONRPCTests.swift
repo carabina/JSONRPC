@@ -34,8 +34,8 @@ class JSONRPCTests: XCTestCase {
     }
     
     func testArrayParam() {
-        let request = JSONRPCRequest(method: "subtract", params: [42, 23], id: .number(1))
-        let data = try! JSONEncoder().encode(request)
+        let request = JSONRPCEncodableRequest(method: "subtract", params: [42, 23], id: .number(1))
+        let data = try! request.httpBody()
         let encodedJSON = String.init(data: data, encoding: .utf8)!
         XCTAssertEqual("""
         {"jsonrpc":"2.0","method":"subtract","id":1,"params":[42,23]}
@@ -47,8 +47,8 @@ class JSONRPCTests: XCTestCase {
             var subtrahend: Int
             var minuend: Int
         }
-        let request = JSONRPCRequest(method: "subtract", params: NestedParam.init(subtrahend: 23, minuend: 42), id: .number(1))
-        let data = try! JSONEncoder().encode(request)
+        let request = JSONRPCEncodableRequest(method: "subtract", params: NestedParam.init(subtrahend: 23, minuend: 42), id: .number(1))
+        let data = try! request.httpBody()
         let encodedJSON = String.init(data: data, encoding: .utf8)!
         XCTAssertEqual("""
         {"jsonrpc":"2.0","method":"subtract","id":1,"params":{"minuend":42,"subtrahend":23}}
@@ -56,8 +56,8 @@ class JSONRPCTests: XCTestCase {
     }
     
     func testNotificationWithParam() {
-        let request = JSONRPCRequest(method: "notify_sum", params: [1, 2, 4], id: .null)
-        let data = try! JSONEncoder().encode(request)
+        let request = JSONRPCEncodableRequest(method: "notify_sum", params: [1, 2, 4], id: .null)
+        let data = try! request.httpBody()
         let encodedJSON = String.init(data: data, encoding: .utf8)!
         XCTAssertEqual("""
         {"jsonrpc":"2.0","method":"notify_sum","params":[1,2,4]}
@@ -65,8 +65,8 @@ class JSONRPCTests: XCTestCase {
     }
     
     func testNotificationWithoutParam() {
-        let request = JSONRPCRequest(method: "foobar", params: NullParams, id: .null)
-        let data = try! JSONEncoder().encode(request)
+        let request = JSONRPCEncodableRequest(method: "foobar", params: NullParams, id: .null)
+        let data = try! request.httpBody()
         let encodedJSON = String.init(data: data, encoding: .utf8)!
         XCTAssertEqual("""
         {"jsonrpc":"2.0","method":"foobar"}
