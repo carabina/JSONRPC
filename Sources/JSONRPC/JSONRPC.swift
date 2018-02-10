@@ -23,7 +23,7 @@ public class JSONRPC {
 		urlreq.httpMethod = "POST"
 		urlreq.httpBody = try request.httpBody()
         #if DEBUG
-        print(String(data: urlreq.httpBody!, using: .utf8)!)
+        print(String(data: try request.httpBody(), using: .utf8)!)
         #endif
 		URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
 			guard error == nil else {
@@ -31,6 +31,9 @@ public class JSONRPC {
 				return
 			}
 			guard let data = data else {
+                #if DEBUG
+                print(String(data: data, using: .utf8)!)
+                #endif
 				completion(nil, JSONRPCError.nullResponse)
 				return
 			}
@@ -47,9 +50,6 @@ public class JSONRPC {
         var urlreq = URLRequest(url: url)
         urlreq.httpMethod = "POST"
         urlreq.httpBody = try JSONSerialization.data(withJSONObject: rawRequest, options: .prettyPrinted)
-        #if DEBUG
-        print(String(data: urlreq.httpBody!, using: .utf8)!)
-        #endif
         URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
             if error == nil, let data = data,
             let json = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any] {
