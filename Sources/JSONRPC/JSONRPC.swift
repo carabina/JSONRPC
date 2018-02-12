@@ -18,7 +18,7 @@ public class JSONRPC {
 		self.url = url
 	}
 
-    public func send<Result: Decodable, ErrorData: Decodable>(request: JSONRPCRequest, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: JSONRPCError?) -> Void) throws {
+    public func send<Result: Decodable, ErrorData: Decodable>(request: JSONRPCRequest, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: Error?) -> Void) throws {
 		var urlreq = URLRequest(url: url)
 		urlreq.httpMethod = "POST"
 		urlreq.httpBody = try request.httpBody()
@@ -27,7 +27,7 @@ public class JSONRPC {
         #endif
 		URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
 			guard error == nil else {
-                completion(nil, JSONRPCError.networkError(description: (error! as NSError).description))
+                completion(nil, error)
 				return
 			}
 			guard let data = data else {
@@ -41,7 +41,7 @@ public class JSONRPC {
 				let rpcResp = try JSONDecoder().decode(JSONRPCResponse<Result, ErrorData>.self, from: data)
 				completion(rpcResp, nil)
 			} catch {
-				completion(nil, JSONRPCError.networkError(description: (error as NSError).description))
+				completion(nil, error)
 			}
 		}).resume()
 	}
@@ -59,40 +59,30 @@ public class JSONRPC {
             }
         }).resume()
     }
-	
-    // MARK: - later
-    /*
-	public func send(requests: [JSONRPCRequest], completion: @escaping (_ responses: [JSONRPCResponse?]?, _ error: Error?) -> Void) throws {
+    
+    public func send(requests: [JSONRPCRequest], completion: @escaping (_ responses: [[String: Any]]?, _ error: Error?) -> Void) throws {
 		var urlreq = URLRequest(url: url)
 		urlreq.httpMethod = "POST"
-		urlreq.httpBody = try JSONSerialization.data(withJSONObject: requests.map({ $0.jsonRepresentation }), options: .prettyPrinted)
+        urlreq.httpBody = try JSONSerialization.data(withJSONObject: requests.map{try $0.httpBody()}, options: [])
 		URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
-			guard error == nil else {
-				completion(nil, error!)
-				return
-			}
-			guard let data = data,
-				let jsonObject = try? JSONSerialization.jsonObject(with: data, options: .allowFragments),
-				let json = jsonObject as? [JSONDictionary] else {
-					completion(nil, JSONRPCError.responseBodyError)
-					return
-			}
-//			do {
-				completion(json.map({ try? JSONRPCResponse(jsonRepresentation: $0) }), nil)
-//			} catch {
-//				completion(nil, error)
-//			}
+            guard error == nil else {
+                completion(nil, error)
+                return
+            }
+            guard let data = data,
+                let json = try? JSONSerialization.jsonObject(with: data, options: []),
+                let resultArray = json as? [[String: Any]] else {
+                completion(nil, JSONRPCError.nullResponse)
+                return
+            }
+            completion(resultArray, nil)
 		}).resume()
 	}
- */
-
+ 
 }
 
 public enum JSONRPCError: Error {
-	case wrongFormat
-	case wrongVersion
 	case nullResponse
-    case networkError(description: String)
 }
 
 public enum JSONRPCMethod {

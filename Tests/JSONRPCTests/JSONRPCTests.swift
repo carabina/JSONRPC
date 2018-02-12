@@ -19,7 +19,7 @@ class JSONRPCTests: XCTestCase {
         {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found", "data":123}, "id": "1"}
         """.data(using: .utf8)!
         do {
-            let rpcR = try JSONDecoder().decode(JSONRPCResponse<Int, String>.self, from: response)
+            _ = try JSONDecoder().decode(JSONRPCResponse<Int, String>.self, from: response)
         } catch {
             print(error)
         }
