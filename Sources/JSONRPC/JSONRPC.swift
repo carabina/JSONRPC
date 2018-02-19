@@ -7,43 +7,54 @@
 //
 
 import Foundation
+import PerfectCURL
 
 public class JSONRPC {
     
-	public var rpcMethod: JSONRPCMethod = .httpURLSession
+    public var networkMethod: JSONRPCNetworkMethod
 	
-    public var url: URL
+    public let url: URL
 	
 	public init(url: URL) {
 		self.url = url
+        #if os(Linux)
+        networkMethod = .httpURLSession
+        #elseif os(macOS)
+        networkMethod = .httpCURL
+        #endif
 	}
 
     public func send<Result: Decodable, ErrorData: Decodable>(request: JSONRPCRequest, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: Error?) -> Void) throws {
-		var urlreq = URLRequest(url: url)
-		urlreq.httpMethod = "POST"
-		urlreq.httpBody = try request.httpBody()
-        #if DEBUG
-        print(String(data: try request.httpBody(), using: .utf8)!)
-        #endif
-		URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
-			guard error == nil else {
-                completion(nil, error)
-				return
-			}
-			guard let data = data else {
-				completion(nil, JSONRPCError.nullResponse)
-				return
-			}
-            #if DEBUG
-            print(String(data: data, using: .utf8)!)
-            #endif
-			do {
-				let rpcResp = try JSONDecoder().decode(JSONRPCResponse<Result, ErrorData>.self, from: data)
-				completion(rpcResp, nil)
-			} catch {
-				completion(nil, error)
-			}
-		}).resume()
+        switch networkMethod {
+        case .httpCURL:
+            let request = CURLRequest.init(url.absoluteString, options: [.postData(Array(try request.httpBody()))])
+            let response = try request.perform()
+            let rpcR = try response.bodyJSON(JSONRPCResponse<Result, ErrorData>.self)
+            completion(rpcR, nil)
+        case .httpURLSession:
+            var urlreq = URLRequest(url: url)
+            urlreq.httpMethod = "POST"
+            urlreq.httpBody = try request.httpBody()
+            URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
+                guard error == nil else {
+                    completion(nil, error)
+                    return
+                }
+                guard let data = data else {
+                    completion(nil, JSONRPCError.nullResponse)
+                    return
+                }
+                do {
+                    let rpcResp = try JSONDecoder().decode(JSONRPCResponse<Result, ErrorData>.self, from: data)
+                    completion(rpcResp, nil)
+                } catch {
+                    completion(nil, error)
+                }
+            }).resume()
+        case .webSocket:
+            fatalError("Websocket not supported!")
+        }
+		
 	}
     
     public func send(rawRequest: [String: Any], completion: @escaping ([String: Any]?) -> Void) throws {
@@ -85,10 +96,8 @@ public enum JSONRPCError: Error {
 	case nullResponse
 }
 
-public enum JSONRPCMethod {
-    @available(*,unavailable)
+public enum JSONRPCNetworkMethod {
 	case webSocket
 	case httpURLSession
-    @available(*,unavailable)
-	case httpCurl
+	case httpCURL
 }

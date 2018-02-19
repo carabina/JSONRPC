@@ -9,11 +9,12 @@ let package = Package(
             targets: ["JSONRPC"]),
     ],
     dependencies: [
+        .package(url: "https://github.com/PerfectlySoft/Perfect-CURL.git", from: "3.0.0")
     ],
     targets: [
         .target(
             name: "JSONRPC",
-            dependencies: []),
+            dependencies: ["PerfectCURL"]),
         .testTarget(
             name: "JSONRPCTests",
             dependencies: ["JSONRPC"]),
