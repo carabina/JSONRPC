@@ -7,7 +7,9 @@
 //
 
 import Foundation
+#if os(Linux)
 import PerfectCURL
+#endif
 
 public class JSONRPC {
     
@@ -17,20 +19,22 @@ public class JSONRPC {
 	
 	public init(url: URL) {
 		self.url = url
-        #if os(Linux)
+        #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
         networkMethod = .httpURLSession
-        #elseif os(macOS)
+        #else
         networkMethod = .httpCURL
         #endif
 	}
 
     public func send<Result: Decodable, ErrorData: Decodable>(request: JSONRPCRequest, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: Error?) -> Void) throws {
         switch networkMethod {
+        #if os(Linux)
         case .httpCURL:
             let request = CURLRequest.init(url.absoluteString, options: [.postData(Array(try request.httpBody()))])
             let response = try request.perform()
             let rpcR = try response.bodyJSON(JSONRPCResponse<Result, ErrorData>.self)
             completion(rpcR, nil)
+        #endif
         case .httpURLSession:
             var urlreq = URLRequest(url: url)
             urlreq.httpMethod = "POST"
@@ -56,20 +60,6 @@ public class JSONRPC {
         }
 		
 	}
-    
-    public func send(rawRequest: [String: Any], completion: @escaping ([String: Any]?) -> Void) throws {
-        var urlreq = URLRequest(url: url)
-        urlreq.httpMethod = "POST"
-        urlreq.httpBody = try JSONSerialization.data(withJSONObject: rawRequest, options: .prettyPrinted)
-        URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
-            if error == nil, let data = data,
-            let json = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any] {
-                completion(json)
-            } else {
-                completion(nil)
-            }
-        }).resume()
-    }
     
     public func send(requests: [JSONRPCRequest], completion: @escaping (_ responses: [[String: Any]]?, _ error: Error?) -> Void) throws {
 		var urlreq = URLRequest(url: url)
@@ -99,5 +89,7 @@ public enum JSONRPCError: Error {
 public enum JSONRPCNetworkMethod {
 	case webSocket
 	case httpURLSession
+    #if os(Linux)
 	case httpCURL
+    #endif
 }
