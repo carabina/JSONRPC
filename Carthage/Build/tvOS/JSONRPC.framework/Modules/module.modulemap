@@ -1,4 +1,0 @@
-framework module JSONRPC {
-    header "JSONRPC-Swift.h"
-    requires objc
-}
