@@ -8,7 +8,7 @@
 
 import Foundation
 
-public enum JRPCID: Codable, Equatable {
+public enum JRPCID: Codable, Equatable, Hashable {
     
     public static func ==(lhs: JRPCID, rhs: JRPCID) -> Bool {
         switch (lhs, rhs) {
@@ -55,6 +55,7 @@ public struct EmptyData : Codable {}
 public let NullParams = EmptyData()
 
 public protocol JSONRPCRequest {
+    var id: JRPCID {get}
     func httpBody() throws -> Data
 }
 

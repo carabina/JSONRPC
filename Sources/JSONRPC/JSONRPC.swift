@@ -7,9 +7,8 @@
 //
 
 import Foundation
-#if os(Linux)
 import PerfectCURL
-#endif
+import Starscream
 
 public class JSONRPC {
     
@@ -17,29 +16,48 @@ public class JSONRPC {
 	
     public let url: URL
 	
-	public init(url: URL) {
+    private var completions: [JRPCID: ((Data) -> ())]
+    
+    private let decoder: JSONDecoder
+    
+    private let queue: OperationQueue
+    
+    public init(url: URL, networkMethod: String = "urlSession") {
+        
 		self.url = url
-        #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
-        networkMethod = .httpURLSession
-        #else
-        networkMethod = .httpCURL
-        #endif
+        self.completions = [:]
+        self.decoder = JSONDecoder()
+        self.queue = OperationQueue.init()
+        self.queue.maxConcurrentOperationCount = 1
+        
+        switch networkMethod {
+        case "urlSession":
+            let config = URLSessionConfiguration.default
+            config.requestCachePolicy = .reloadIgnoringLocalCacheData
+            let session = URLSession.init(configuration: config)
+            self.networkMethod = .httpURLSession(session)
+        case "websocket":
+            let ws = WebSocket(url: url)
+            self.networkMethod = .webSocket(ws)
+            ws.delegate = self
+            ws.connect()
+        default:
+            fatalError()
+        }
 	}
 
     public func send<Result: Decodable, ErrorData: Decodable>(request: JSONRPCRequest, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: Error?) -> Void) throws {
         switch networkMethod {
-        #if os(Linux)
         case .httpCURL:
             let request = CURLRequest.init(url.absoluteString, options: [.postData(Array(try request.httpBody()))])
             let response = try request.perform()
             let rpcR = try response.bodyJSON(JSONRPCResponse<Result, ErrorData>.self)
             completion(rpcR, nil)
-        #endif
-        case .httpURLSession:
+        case .httpURLSession(let session):
             var urlreq = URLRequest(url: url)
             urlreq.httpMethod = "POST"
             urlreq.httpBody = try request.httpBody()
-            URLSession.shared.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
+            session.dataTask(with: urlreq, completionHandler: {(data, response, error) -> Void in
                 guard error == nil else {
                     completion(nil, error)
                     return
@@ -49,14 +67,25 @@ public class JSONRPC {
                     return
                 }
                 do {
-                    let rpcResp = try JSONDecoder().decode(JSONRPCResponse<Result, ErrorData>.self, from: data)
+                    let rpcResp = try self.decoder.decode(JSONRPCResponse<Result, ErrorData>.self, from: data)
                     completion(rpcResp, nil)
                 } catch {
                     completion(nil, error)
                 }
             }).resume()
-        case .webSocket:
-            fatalError("Websocket not supported!")
+        case .webSocket(let ws):
+            ws.write(data: try request.httpBody()) {
+                self.queue.addOperation {
+                    self.completions[request.id] = { data in
+                        do {
+                            let rpcResp = try self.decoder.decode(JSONRPCResponse<Result, ErrorData>.self, from: data)
+                            completion(rpcResp, nil)
+                        } catch {
+                            completion(nil, error)
+                        }
+                    }
+                }
+            }
         }
 		
 	}
@@ -82,14 +111,47 @@ public class JSONRPC {
  
 }
 
+extension JSONRPC: WebSocketDelegate {
+    
+    public func websocketDidConnect(socket: WebSocketClient) {
+        print("websocket is connected")
+    }
+    
+    public func websocketDidDisconnect(socket: WebSocketClient, error: Error?) {
+        print("websocket is disconnected: \(error?.localizedDescription ?? "No error info!")")
+        queue.addOperation {
+            self.completions = [:]
+        }
+    }
+    
+    public func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
+        print("websocketDidReceiveMessage")
+        let data = text.data(using: .utf8)!
+        do {
+            let resID = try decoder.decode(JSONRPCResponseID.self, from: data)
+            completions[resID.id]?(data)
+            queue.addOperation {
+                self.completions[resID.id] = nil
+            }
+        } catch {
+            fatalError(error.localizedDescription)
+        }
+        
+    }
+    
+    public func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
+        
+    }
+    
+    
+}
+
 public enum JSONRPCError: Error {
 	case nullResponse
 }
 
 public enum JSONRPCNetworkMethod {
-	case webSocket
-	case httpURLSession
-    #if os(Linux)
+	case webSocket(WebSocket)
+	case httpURLSession(URLSession)
 	case httpCURL
-    #endif
 }

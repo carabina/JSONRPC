@@ -8,6 +8,12 @@
 
 import Foundation
 
+internal struct JSONRPCResponseID: Decodable {
+    
+    public let id: JRPCID
+    
+}
+
 public struct JSONRPCResponse<Result: Decodable, ErrorData: Decodable>: Decodable {
 	
     public let jsonrpc: String
