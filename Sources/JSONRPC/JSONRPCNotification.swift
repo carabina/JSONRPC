@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct JSONRPCNotification<Parameters: Codable>: Codable {
+public struct JSONRPCNotification<Parameters: Codable>: Codable {
     
     public let jsonrpc: String = "2.0"
 
