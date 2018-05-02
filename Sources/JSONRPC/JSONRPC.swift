@@ -12,9 +12,9 @@ import Starscream
 
 public class JSONRPC {
     
-    public var networkMethod: JSONRPCNetworkMethod
-	
     public let url: URL
+    
+    private let networkMethod: NetworkMethod
 	
     private var completions: [JRPCID: ((Data) -> ())]
     
@@ -22,21 +22,29 @@ public class JSONRPC {
     
     private let queue: OperationQueue
     
-    public init(url: URL, networkMethod: String = "urlSession") {
+    public var notificationHandler: ((Data) -> ())?
+    
+    private enum NetworkMethod {
+        case webSocket(WebSocket)
+        case httpURLSession(URLSession)
+        case httpCURL
+    }
+    
+    public init(url: URL, networkMethod: JSONRPCNetworkMethod = .httpURLSession) {
         
 		self.url = url
         self.completions = [:]
         self.decoder = JSONDecoder()
         self.queue = OperationQueue.init()
         self.queue.maxConcurrentOperationCount = 1
-        
+        self.notificationHandler = nil
         switch networkMethod {
-        case "urlSession":
+        case .httpURLSession:
             let config = URLSessionConfiguration.default
             config.requestCachePolicy = .reloadIgnoringLocalCacheData
             let session = URLSession.init(configuration: config)
             self.networkMethod = .httpURLSession(session)
-        case "websocket":
+        case .webSocket:
             let ws = WebSocket(url: url)
             self.networkMethod = .webSocket(ws)
             ws.delegate = self
@@ -45,6 +53,15 @@ public class JSONRPC {
             fatalError()
         }
 	}
+    
+    deinit {
+        switch networkMethod {
+        case .webSocket(let ws):
+            ws.disconnect()
+        default:
+            break
+        }
+    }
 
     public func send<Result: Decodable, ErrorData: Decodable>(request: JSONRPCRequest, completion: @escaping (_ response: JSONRPCResponse<Result, ErrorData>?, _ error: Error?) -> Void) throws {
         switch networkMethod {
@@ -134,9 +151,9 @@ extension JSONRPC: WebSocketDelegate {
                 self.completions[resID.id] = nil
             }
         } catch {
-            fatalError(error.localizedDescription)
+            // no id, it's a notification
+            notificationHandler?(data)
         }
-        
     }
     
     public func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
@@ -151,7 +168,7 @@ public enum JSONRPCError: Error {
 }
 
 public enum JSONRPCNetworkMethod {
-	case webSocket(WebSocket)
-	case httpURLSession(URLSession)
+	case webSocket
+	case httpURLSession
 	case httpCURL
 }
