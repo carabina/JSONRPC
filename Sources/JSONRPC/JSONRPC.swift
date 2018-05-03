@@ -151,9 +151,11 @@ extension JSONRPC: WebSocketDelegate {
         let data = text.data(using: .utf8)!
         do {
             let resID = try decoder.decode(JSONRPCResponseID.self, from: data)
-            completions[resID.id]?(data)
             queue.addOperation {
-                self.completions[resID.id] = nil
+                if let completion = self.completions[resID.id] {
+                    completion(data)
+                    self.completions[resID.id] = nil
+                }
             }
         } catch {
             // no id, it's a notification

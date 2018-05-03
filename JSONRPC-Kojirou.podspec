@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   #  summary should be tweet-length, and the description more in depth.
   #
 
-  s.name         = "JSONRPC"
+  s.name         = "JSONRPC-Kojirou"
   s.version      = "0.2.2"
   s.summary      = "A JSON-RPC framework written in Swift."
 
@@ -68,32 +68,12 @@ Pod::Spec.new do |s|
   #  When using multiple platforms
   s.ios.deployment_target = "8.0"
   s.osx.deployment_target = "10.10"
-  s.watchos.deployment_target = "9.0"
-  s.tvos.deployment_target = "2.0"
-
-
-  # ――― Source Location ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
-  #
-  #  Specify the location from where the source should be retrieved.
-  #  Supports git, hg, bzr, svn and HTTP.
-  #
+  # s.watchos.deployment_target = "9.0"
+  # s.tvos.deployment_target = "2.0"
 
   s.source       = { :git => "https://github.com/kojirou1994/JSONRPC.git", :tag => "#{s.version}" }
 
-
-  # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
-  #
-  #  CocoaPods is smart about how it includes source code. For source files
-  #  giving a folder will include any swift, h, m, mm, c & cpp files.
-  #  For header files it will include any header in the folder.
-  #  Not including the public_header_files will make all headers public.
-  #
-
   s.source_files  = "Sources/JSONRPC/*.{h,swift}"
-  s.exclude_files = "Support"
-
-  # s.public_header_files = "Classes/**/*.h"
-
 
   # ――― Resources ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   #
@@ -129,6 +109,7 @@ Pod::Spec.new do |s|
   #  you can include multiple dependencies to ensure it works.
 
   # s.requires_arc = true
+  s.module_name = "JSONRPC"
   s.swift_version = '4.1'
 
   # s.xcconfig = { "HEADER_SEARCH_PATHS" => "$(SDKROOT)/usr/include/libxml2" }
