@@ -96,6 +96,10 @@ public class JSONRPC {
                 }
             }).resume()
         case .webSocket(let ws):
+            guard ws.isConnected else {
+                completion(nil, JSONRPCError.noNetwork)
+                return
+            }
             ws.write(data: try request.httpBody()) {
                 self.queue.addOperation {
                     self.completions[request.id] = { data in
@@ -171,6 +175,7 @@ extension JSONRPC: WebSocketDelegate {
 
 public enum JSONRPCError: Error {
 	case nullResponse
+    case noNetwork
 }
 
 public enum JSONRPCNetworkMethod {
